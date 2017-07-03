@@ -197,6 +197,13 @@ def run2(imname):
     if origlabel == label:
       break
     
+    # fix gradient
+    tmp_img = imcropped + 200 * gradients[0]
+    tmp_img += imagenet_mean
+    # tmp_img = tmp_img[0][:,:,[2,1,0]]
+    gradients[0][tmp_img>255] = 0
+    gradients[0][tmp_img<0] = 0
+
     imcropped += 200 * gradients[0]
 
   imcropped += imagenet_mean
