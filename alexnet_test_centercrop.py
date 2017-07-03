@@ -146,10 +146,12 @@ def run2(imname):
   
   
   
-  im=preproc_py2(imname,250)
+
+  # im=preproc_py2(imname,250)
+  im=preproc_py2(imname,227)
   print im.shape
   print imname
-      
+
   #convert grey to color    
   if(im.ndim<3):
     im=np.expand_dims(im,2)
@@ -167,17 +169,44 @@ def run2(imname):
   imcropped=np.expand_dims(imcropped,0)
   
 
-  
-  #run initial classification
-  predict_values=sess.run(out, feed_dict={x: imcropped}  )
-  
+  for i in range(100000):
+    
+    #run initial classification
+    predict_values=sess.run(out, feed_dict={x: imcropped}  )
 
-  origlabel=np.argmax(predict_values)
+    first_index = np.argmax(predict_values)
+    
+    # label = 398 # abacus
+    label = 952 # fig
+    # label = 950 # orange
 
-  print ('at start: classindex: ',origlabel, 'classlabel: ', cls[np.argmax(predict_values)],'score',np.max(predict_values))
-  #print(predict_values[0,chosenlb],predict_values[0,origlabel])
-  
-  
+    target_score = tf.slice(out, [0, label], [1, 1])
+    first_score = tf.slice(out, [0, first_index], [1, 1])
+    diff = tf.subtract(target_score, first_score)
+    grad = tf.gradients(diff, x)
+
+    gradients = sess.run(grad, feed_dict={x: imcropped}  )
+
+    origlabel=np.argmax(predict_values)
+
+
+    print 'iter', i, 'classindex: ',origlabel, 'classlabel: ', cls[np.argmax(predict_values)],'score',np.max(predict_values)
+    print 'iter', i, 'score of', cls[label],':', predict_values[0][label]
+    #print(predict_values[0,chosenlb],predict_values[0,origlabel])
+
+    if origlabel == label:
+      break
+    
+    imcropped += 200 * gradients[0]
+
+  imcropped += imagenet_mean
+  imcropped = imcropped[0]
+  imcropped = imcropped[:,:,[2,1,0]] #BGR to RGB
+
+  result = Image.fromarray(imcropped.astype(np.uint8))
+  result.save('out.png')
+      
+
 
 
 if __name__=='__main__':
